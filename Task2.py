@@ -1,9 +1,7 @@
 import numpy as np
 import os
-from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import random
-
 from mpl_toolkits import mplot3d
 
 data_arr = []
@@ -16,32 +14,29 @@ def read_dir(task_dir, work_dir):
         read_dataset(os.path.join(work_dir, task_dir))
 
 
-def run_ransac(data, estimate, is_inlier, sample_size, goal_inliers, max_iterations, stop_at_goal=True,
-               random_seed=None):
-    best_ic = 0
-    best_model = None
-    random.seed(random_seed)
-    # random.sample cannot deal with "data" being a numpy array
+def ran(data, sample_set_amount, max_inliers, iterations, threshold):
+    inlier_in = 0
+    fitted_model = None
+
     data = list(data)
-    for i in range(max_iterations):
-        s = random.sample(data, int(sample_size))
-        m = estimate(s)
-        ic = 0
+    for i in range(iterations):
+        sample_set = random.sample(data, int(sample_set_amount))
+        model = estimate(sample_set)
+        inlier_count = 0
         for j in range(len(data)):
-            if is_inlier(m, data[j]):
-                ic += 1
+            if inlier(model, data[j], threshold):
+                inlier_count += 1
 
-        print(s)
-        print('estimate:', m, )
-        print('# inliers:', ic)
+        print("Sample set chosen: {0}".format(sample_set))
+        print("Estimate model: {0}".format(model))
+        print("Inliers in: {0}".format(inlier_count))
 
-        if ic > best_ic:
-            best_ic = ic
-            best_model = m
-            if ic > goal_inliers and stop_at_goal:
+        if inlier_count > inlier_in:
+            inlier_in = inlier_count
+            fitted_model = model
+            if inlier_count > max_inliers:
                 break
-    print('took iterations:', i + 1, 'best model:', best_model, 'explains:', best_ic)
-    return best_model, best_ic
+    return fitted_model
 
 
 def read_dataset(path):
@@ -70,19 +65,26 @@ def plot_dataset():
     plt.show()
 
 
-def augment(xyzs):
-    axyz = np.ones((len(xyzs), 4))
-    axyz[:, :3] = xyzs
-    return axyz
+def transform(arr):
+    # make arr filled with 1 [n x 4] and put there our points
+    arr_t = np.ones((len(arr), 4))
+    arr_t[:, :3] = arr
+
+    return arr_t
 
 
-def estimate(xyzs):
-    axyz = augment(xyzs[:3])
-    return np.linalg.svd(axyz)[-1][-1, :]
+def estimate(arr):
+    arr_t = transform(arr[:3])
+    return np.linalg.svd(arr_t)[-1][-1, :]
 
 
-def is_inlier(coeffs, xyz, threshold):
-    return np.abs(coeffs.dot(augment([xyz]).T)) < threshold
+def inlier(coeffs, data, threshold):
+    return np.abs(coeffs.dot(transform([data]).T)) < threshold
+
+
+def plot_plane(a, b, c, d):
+    xx, yy = np.mgrid[:10, :10]
+    return xx, yy, (-d - a * xx - b * yy) / c
 
 
 if __name__ == '__main__':
@@ -95,26 +97,18 @@ if __name__ == '__main__':
     fig = plt.figure()
     ax = mplot3d.Axes3D(fig)
 
-
-    def plot_plane(a, b, c, d):
-        xx, yy = np.mgrid[:10, :10]
-        return xx, yy, (-d - a * xx - b * yy) / c
-
-
-    n = 1000
-    max_iterations = 1000
-    goal_inliers = n * 0.3
-
-    # test data
-    # xyzs = np.random.random((n, 3)) * 10
-    # xyzs[:50, 2:] = xyzs[:50, :1]
+    n = 3
+    max_iterations = 100
+    max_inliers = 100
+    threshold = 0.01
 
     ax.scatter3D(_x, _y, _z)
 
-    # RANSAC
-    m, b = run_ransac(data_arr, estimate, lambda x, y: is_inlier(x, y, 0.01), 3, goal_inliers, max_iterations)
-    a, b, c, d = m
-    xx, yy, zz = plot_plane(a, b, c, d)
-    ax.plot_surface(xx, yy, zz, color='g')
+    model = ran(data_arr, n, max_inliers, max_iterations, threshold)
 
+    a, b, c, d = model
+
+    x, y, z = plot_plane(a, b, c, d)
+    ax.scatter3D(_x, _y, _z)
+    ax.plot_surface(x, y, z, color='r')
     plt.show()

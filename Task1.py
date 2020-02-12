@@ -4,6 +4,7 @@ import os
 import matplotlib.pyplot as plt
 import statistics
 
+# current dir
 curr_work_dir = os.getcwd()
 data_arr = []
 
@@ -14,6 +15,7 @@ def read_dir(task_dir, work_dir):
         read_dataset(os.path.join(work_dir, task_dir))
 
 
+# read dataset form file
 def read_dataset(path):
     file = open(path)
     data = file.readline()
@@ -24,6 +26,7 @@ def read_dataset(path):
     file.close()
 
 
+# plotting elements before removing outliers
 def plot_before():
     t = np.array([data_arr[i][0] for i in range(len(data_arr))])
     angle = np.array([data_arr[i][1] for i in range(len(data_arr))])
@@ -34,6 +37,7 @@ def plot_before():
 
     print("Mean: {0}".format(angle_mean))
     print("Standart deviation: {0}".format(angle_sdev))
+
     plt.plot(t, angle)
     plt.title("Angles(t) values before")
     plt.xlabel("Time")
@@ -46,21 +50,23 @@ def plot_before():
     return angle_mean, angle_sdev, angle
 
 
+# Simple regression minimize total residual error
 def regression(x, y):
     x_mean, y_mean = np.mean(x), np.mean(y)
 
-    d_xy = np.sum(y * x) - np.size(x) * y_mean * x_mean
-    d_xx = np.sum(x * x) - np.size(x) * x_mean * x_mean
+    # s_xy is the sum of cross-deviations of y and x
+    s_xy = np.sum(y * x) - np.size(x) * y_mean * x_mean
+    # s_xx is the sum of cross-deviations of x
+    s_xx = np.sum(x * x) - np.size(x) * x_mean * x_mean
 
-    b1 = d_xy / d_xx
+    b1 = s_xy / s_xx
     b0 = y_mean - b1 * x_mean
 
-    return (b0, b1)
+    return b0, b1
 
 
 def plt_regression(x, y, b):
-    plt.scatter(x, y, color="m",
-                marker="o", s=30)
+    plt.scatter(x, y, color="m", marker="o")
     y_pred = b[0] + b[1] * x
     plt.plot(x, y_pred, color="g")
     plt.xlabel('x')
@@ -68,23 +74,29 @@ def plt_regression(x, y, b):
     plt.show()
 
 
-def plot_confidence_interval(angle_new):
+def plot_confidence_interval_points(angle_new):
     mean = np.mean(angle_new)
     ci_95 = 1.96 * stats.sem(angle_new)
     min = mean - ci_95
     max = mean + ci_95
 
-    plt.figure(figsize=(15, 7))
     plt.plot(mean, "bo")
     plt.plot(min, "ro")
     plt.plot(max, "ro")
+    plt.title("Confidence interval points")
     plt.show()
 
 
-def mean_confidence_interval(data, confidence=0.95):
+# find confidence interval
+def plot_ci(data, confidence=0.95):
     m, se = np.mean(data), stats.sem(data)
     h = se * stats.t.ppf((1 + confidence) / 2., len(data) - 1)
-    return m, m - h, m + h
+
+    plt.hist(angle_new, bins=100)
+    plt.plot([mean, mean], [0, 1300])
+    plt.plot([m - h, m - h], [0, 1300])
+    plt.plot([m + h, m + h], [0, 1300])
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -108,18 +120,18 @@ if __name__ == '__main__':
     plt.ylabel("Angel")
     plt.show()
 
+    plt.hist(angle_new, bins=100)
+    plt.title("Angels values distribution after")
+    plt.show()
+
     b = regression(time, angle_new)
-    print("Estimated coefficients:\nb_0 = {} \nb_1 = {}".format(b[0], b[1]))
+    print("Coeff estimated : b0 = {0}, b_1 = {1}".format(b[0], b[1]))
 
     # plotting regression line
     plt_regression(time, angle_new, b)
 
-    plot_confidence_interval(angle_new)
+    # plotting bounds for ci
+    plot_confidence_interval_points(angle_new)
 
-    print(mean_confidence_interval(angle_new))
-    m, low, upper = mean_confidence_interval(angle_new)
-    plt.hist(angle_new, bins=100)
-    plt.plot([mean, mean], [0, 1300])
-    plt.plot([low, low], [0, 1300])
-    plt.plot([upper, upper], [0, 1300])
-    plt.show()
+    # plotting interval on histogram with distribution
+    plot_ci(angle_new)
