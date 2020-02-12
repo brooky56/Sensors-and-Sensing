@@ -14,7 +14,22 @@ def read_dir(task_dir, work_dir):
         read_dataset(os.path.join(work_dir, task_dir))
 
 
-def ran(data, sample_set_amount, max_inliers, iterations, threshold):
+# transformation matrix to 4x4
+def transform(arr):
+    # make arr filled with 1 [n x 4] and put there our points
+    arr_t = np.ones((len(arr), 4))
+    arr_t[:, :3] = arr
+    return arr_t
+
+
+# calculate plane model
+def estimate(arr):
+    arr_t = transform(arr[:3])
+    return np.linalg.svd(arr_t)[-1][-1, :]
+
+
+# main part for algorithm
+def ransac(data, sample_set_amount, max_inliers, iterations, threshold):
     inlier_in = 0
     fitted_model = None
 
@@ -65,25 +80,13 @@ def plot_dataset():
     plt.show()
 
 
-def transform(arr):
-    # make arr filled with 1 [n x 4] and put there our points
-    arr_t = np.ones((len(arr), 4))
-    arr_t[:, :3] = arr
-
-    return arr_t
-
-
-def estimate(arr):
-    arr_t = transform(arr[:3])
-    return np.linalg.svd(arr_t)[-1][-1, :]
-
-
+# check that point is in estimated limits for inlier
 def inlier(coeffs, data, threshold):
     return np.abs(coeffs.dot(transform([data]).T)) < threshold
 
 
 def plot_plane(a, b, c, d):
-    xx, yy = np.mgrid[:10, :10]
+    xx, yy = np.mgrid[:8, :8]
     return xx, yy, (-d - a * xx - b * yy) / c
 
 
@@ -97,15 +100,16 @@ if __name__ == '__main__':
     fig = plt.figure()
     ax = mplot3d.Axes3D(fig)
 
-    n = 3
+    n = 2
     max_iterations = 100
     max_inliers = 100
     threshold = 0.01
 
     ax.scatter3D(_x, _y, _z)
 
-    model = ran(data_arr, n, max_inliers, max_iterations, threshold)
+    model = ransac(data_arr, n, max_inliers, max_iterations, threshold)
 
+    # get model parameters
     a, b, c, d = model
 
     x, y, z = plot_plane(a, b, c, d)
