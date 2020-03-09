@@ -45,38 +45,6 @@ def plot_before():
 
     return angle_mean, angle_sdev, angle
 
-
-def aplly_filter():
-    currrent = []
-    filtered = []
-
-    xk_time = data_arr[0][0]
-    yk_angle = data_arr[0][1]
-
-    # model mse
-    model_mse = 0.003
-    # sensor mse
-    sensor_mse = 0.2
-
-    i = 1
-    for i in range(len(data_arr)):
-        dx = data_arr[i][0] - xk_time
-        xk_time = data_arr[i][0]
-        u = 3 * cos(xk_time) * dx
-        # calculating formulas to gain K parameter
-        K = (sensor_mse ** 2 + model_mse ** 2) / (sensor_mse ** 2 + model_mse ** 2 + model_mse ** 2)
-
-        mse = sensor_mse ** 2 * (sensor_mse ** 2 + model_mse ** 2) / (
-                sensor_mse ** 2 + sensor_mse ** 2 + model_mse ** 2)
-
-        yk_angle = K * data_arr[i][1] + (1 - K) * (yk_angle + u)
-
-        filtered.append(yk_angle)
-        currrent.append(data_arr[i][1])
-
-        return filtered, current
-
-
 if __name__ == '__main__':
     read_dir("case3.txt", curr_work_dir)
     filtered, current = plot_before()
