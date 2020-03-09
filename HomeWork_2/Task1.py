@@ -46,10 +46,7 @@ def plot_before():
     return angle_mean, angle_sdev, angle
 
 
-if __name__ == '__main__':
-    read_dir("case3.txt", curr_work_dir)
-    plot_before()
-
+def aplly_filter():
     currrent = []
     filtered = []
     K_coef = []
@@ -78,6 +75,13 @@ if __name__ == '__main__':
         filtered.append(yk_angle)
         currrent.append(data_arr[i][1])
 
-    plt.plot(currrent, c='g')
+        return filtered, current
+
+
+if __name__ == '__main__':
+    read_dir("case3.txt", curr_work_dir)
+    filtered, current = plot_before()
+
+    plt.plot(current, c='g')
     plt.plot(filtered, c='b')
     plt.show()
