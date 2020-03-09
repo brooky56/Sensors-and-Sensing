@@ -49,7 +49,6 @@ def plot_before():
 def aplly_filter():
     currrent = []
     filtered = []
-    K_coef = []
 
     xk_time = data_arr[0][0]
     yk_angle = data_arr[0][1]
