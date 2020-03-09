@@ -46,35 +46,38 @@ def plot_before():
     return angle_mean, angle_sdev, angle
 
 
-std_e = 0.003
-std_n = 0.2
-
-E = std_n ** 2
-
-signal = []
-prediction = []
-Ks = []
-
 if __name__ == '__main__':
     read_dir("case3.txt", curr_work_dir)
     plot_before()
 
-    x0 = data_arr[0][0]
-    y0 = data_arr[0][1]
+    currrent = []
+    filtered = []
+    K_coef = []
+
+    xk_time = data_arr[0][0]
+    yk_angle = data_arr[0][1]
+
+    # model mse
+    model_mse = 0.003
+    # sensor mse
+    sensor_mse = 0.2
 
     i = 1
     for i in range(len(data_arr)):
-        dx = data_arr[i][0] - x0
-        x0 = data_arr[i][0]
-        K = (E + std_e ** 2) / (E + std_n ** 2 + std_e ** 2)
-        E = std_n ** 2 * (E + std_e ** 2) / (E + std_n ** 2 + std_e ** 2)
+        dx = data_arr[i][0] - xk_time
+        xk_time = data_arr[i][0]
+        u = 3 * cos(xk_time) * dx
+        # calculating formulas to gain K parameter
+        K = (sensor_mse ** 2 + model_mse ** 2) / (sensor_mse ** 2 + model_mse ** 2 + model_mse ** 2)
 
-        y0 = K * data_arr[i][1] + (1 - K) * (y0 + 5 * dx)
+        mse = sensor_mse ** 2 * (sensor_mse ** 2 + model_mse ** 2) / (
+                sensor_mse ** 2 + sensor_mse ** 2 + model_mse ** 2)
 
-        Ks.append(K)
-        prediction.append(y0)
-        signal.append(data_arr[i][1])
+        yk_angle = K * data_arr[i][1] + (1 - K) * (yk_angle + u)
 
-    plt.plot(signal, label='data', )
-    plt.plot(prediction, label='filtered', c='black')
+        filtered.append(yk_angle)
+        currrent.append(data_arr[i][1])
+
+    plt.plot(currrent, c='g')
+    plt.plot(filtered, c='b')
     plt.show()
