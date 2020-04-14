@@ -1,4 +1,3 @@
-# import modules
 import pandas as pd
 import numpy as np
 from scipy.integrate import cumtrapz
@@ -98,6 +97,7 @@ def remove_noise(dataset, dt):
     atten_x_fft = np.where(freq < 15, fft_x * 0.1, fft_x)
     atten_y_fft = np.where(freq < 15, fft_y * 0.1, fft_y)
     atten_z_fft = np.where((freq > 2) & (freq < 15), fft_z * 0.1, fft_z)
+
     # Compute inverse of discrete Fourier Transform and save to dataframe
     dataset['x_ifft'] = np.fft.irfft(atten_x_fft, n=dataset.shape[0])
     dataset['y_ifft'] = np.fft.irfft(atten_y_fft, n=dataset.shape[0])
@@ -149,8 +149,8 @@ def KL_GPS_altitude(dataset, dt):
     # 2x2 Identity Matrix
     I = np.eye(2)
 
-    X_pos = []
-    X_vel = []
+    Z_pos = []
+    Z_vel = []
     P_pos = []
     P_vel = []
     K_pos = []
@@ -165,9 +165,8 @@ def KL_GPS_altitude(dataset, dt):
         X = A @ X + B @ u
         P = A @ P @ A.T + Q
 
-        # Altitude measurement every 15 accelerometer updates (dt=0.01s vs dt_barometer = 0.015s)
         if i % 5 == 0:
-            # Pull in altitude measurement
+            # Pull in altitude measurement from ft to m k = 0.3048
             z_m[0][0] = dataset['LOCATION Altitude ( m)'][i] * 0.3048
 
             # Update the next state
@@ -176,11 +175,11 @@ def KL_GPS_altitude(dataset, dt):
             P = (I - K @ H) @ P  # Updated Covariance
 
         # --- Store system states variables, Kalman Gain, and covariances ---
-        X_pos.append(X[0][0])
-        X_vel.append(X[1][0])
+        Z_pos.append(X[0][0])
+        Z_vel.append(X[1][0])
         P_pos.append(P[0][0])
         P_vel.append(P[1][1])
         K_pos.append(K[0][0])
         K_vel.append(K[1][0])
 
-    return X_pos, X_vel, K_pos, K_vel
+    return Z_pos, Z_vel, K_pos, K_vel
