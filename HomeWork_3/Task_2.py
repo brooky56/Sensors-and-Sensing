@@ -93,10 +93,9 @@ def remove_noise(dataset, dt):
     fft_y = np.fft.rfft(dataset['EARTH LINEAR ACCELERATION Y'])
     fft_z = np.fft.rfft(dataset['EARTH LINEAR ACCELERATION Z'])
 
-    # Attenuate noise in X,Y below 1Hz by 0.2
-    atten_x_fft = np.where(freq < 15, fft_x * 0.1, fft_x)
-    atten_y_fft = np.where(freq < 15, fft_y * 0.1, fft_y)
-    atten_z_fft = np.where((freq > 2) & (freq < 15), fft_z * 0.1, fft_z)
+    atten_x_fft = np.where(freq < 5, fft_x * 0.1, fft_x)
+    atten_y_fft = np.where(freq < 5, fft_y * 0.1, fft_y)
+    atten_z_fft = np.where((freq > 2) & (freq < 5), fft_z * 0.1, fft_z)
 
     # Compute inverse of discrete Fourier Transform and save to dataframe
     dataset['x_ifft'] = np.fft.irfft(atten_x_fft, n=dataset.shape[0])
@@ -137,12 +136,12 @@ def KL_GPS_altitude(dataset, dt):
     # Measurement
     z_m = np.array([[0.0]])
 
-    # Initial System State Matrix (pos_z = 0, vel_z = 0 at t = 0)
-    X = np.array([[0.0],
+    # Initial System State Matrix
+    Z = np.array([[0.0],
                   [0.0]])
 
     # Initial Process Covariance Matrix
-    spos = 0.0  # No uncertainty in initial state
+    spos = 0.0
     svel = 0.0
     P = np.array([[spos ** 2, svel * spos],
                   [spos * svel, svel ** 2]])
@@ -162,7 +161,7 @@ def KL_GPS_altitude(dataset, dt):
         u[0][0] = dataset['z_ifft'][i]
 
         # Predict the next state
-        X = A @ X + B @ u
+        Z = A @ Z + B @ u
         P = A @ P @ A.T + Q
 
         if i % 5 == 0:
@@ -171,12 +170,12 @@ def KL_GPS_altitude(dataset, dt):
 
             # Update the next state
             K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)  # Kalman Gain
-            X = X + K @ (z_m - H @ X)  # Updated State
+            Z = Z + K @ (z_m - H @ Z)  # Updated State
             P = (I - K @ H) @ P  # Updated Covariance
 
         # --- Store system states variables, Kalman Gain, and covariances ---
-        Z_pos.append(X[0][0])
-        Z_vel.append(X[1][0])
+        Z_pos.append(Z[0][0])
+        Z_vel.append(Z[1][0])
         P_pos.append(P[0][0])
         P_vel.append(P[1][1])
         K_pos.append(K[0][0])
